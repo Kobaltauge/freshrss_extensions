@@ -1,0 +1,8 @@
+{
+  "name": "Content Cleaner",
+  "author": "Antigravity",
+  "description": "Entfernt Absätze, die mit 'Werbung:' beginnen, und verhindert das Überschreiben bestehender Einträge.",
+  "version": "1.0",
+  "entrypoint": "ContentCleaner",
+  "type": "user"
+}
