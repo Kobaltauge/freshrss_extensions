@@ -1,0 +1,8 @@
+{
+  "name": "Title Cleaner",
+  "author": "Antigravity",
+  "description": "Cleans up HTML tags and unescapes HTML entities (such as &amp;) in feed entry titles.",
+  "version": "1.0",
+  "entrypoint": "TitleCleaner",
+  "type": "user"
+}
