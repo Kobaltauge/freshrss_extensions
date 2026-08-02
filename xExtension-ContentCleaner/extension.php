@@ -1,13 +1,22 @@
 <?php
 
 class ContentCleanerExtension extends Minz_Extension {
+    private static $entryDAO = null;
+
     public function init() {
         // Der Hook greift bei jedem Artikel, der im Feed geliefert wird
         $this->registerHook('entry_before_insert', array($this, 'cleanAndPreventOverwrite'));
     }
 
     public function cleanAndPreventOverwrite($entry) {
-        $entryDAO = FreshRSS_Factory::createEntryDao();
+        if ($entry === null) {
+            return null;
+        }
+
+        if (self::$entryDAO === null) {
+            self::$entryDAO = FreshRSS_Factory::createEntryDao();
+        }
+
         $guid = $entry->guid();
 
         // Feed-ID ermitteln (kompatibel mit verschiedenen FreshRSS-Versionen)
@@ -20,7 +29,7 @@ class ContentCleanerExtension extends Minz_Extension {
 
         if ($feed_id !== null && $guid !== '') {
             // Datenbank abfragen, ob die GUID für diesen Feed bereits existiert
-            $existing_hashes = $entryDAO->listHashForFeedGuids($feed_id, array($guid));
+            $existing_hashes = self::$entryDAO->listHashForFeedGuids($feed_id, array($guid));
             
             if (!empty($existing_hashes) && isset($existing_hashes[$guid])) {
                 // Der Artikel existiert bereits in deiner Datenbank.
@@ -32,15 +41,22 @@ class ContentCleanerExtension extends Minz_Extension {
         // --- Ab hier: Verarbeitung für komplett NEUE Artikel ---
         $content = $entry->content();
 
-        // 1. Autoren-Box entfernen (Avatar & Absatz)
-        $author_pattern = '/(?:<img\s+[^>]*local-avatars[^>]*>\s*)?<p[^>]*>\s*<strong>\s*<a\s+href="[^"]*\/author\/.*?<\/p>/is';
-        $content = preg_replace($author_pattern, '', $content);
+        if (is_string($content) && $content !== '') {
+            // 1. Autoren-Box entfernen (Avatar & Absatz)
+            if (strpos($content, 'author/') !== false) {
+                $author_pattern = '/(?:<img\s+[^>]*local-avatars[^>]*>\s*)?<p[^>]*>\s*<strong>\s*<a\s+href="[^"]*\/author\/.*?<\/p>/is';
+                $content = preg_replace($author_pattern, '', $content);
+            }
 
-        // 2. Werbung entfernen
-        $ad_pattern = '/<p[^>]*>\s*Werbung\s*<\/p>/is';
-        $content = preg_replace($ad_pattern, '', $content);
+            // 2. Werbung entfernen
+            if (strpos($content, 'Werbung') !== false) {
+                $ad_pattern = '/<p[^>]*>\s*Werbung\s*<\/p>/is';
+                $content = preg_replace($ad_pattern, '', $content);
+            }
 
-        $entry->_content($content);
+            $entry->_content($content);
+        }
+
         return $entry;
     }
 }
