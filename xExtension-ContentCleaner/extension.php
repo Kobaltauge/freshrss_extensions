@@ -6,6 +6,7 @@ class ContentCleanerExtension extends Minz_Extension {
     public function init() {
         // Der Hook greift bei jedem Artikel, der im Feed geliefert wird
         $this->registerHook('entry_before_insert', array($this, 'cleanAndPreventOverwrite'));
+        $this->registerHook('entry_before_display', array($this, 'cleanOnDisplay'));
     }
 
     public function cleanAndPreventOverwrite($entry) {
@@ -39,6 +40,23 @@ class ContentCleanerExtension extends Minz_Extension {
         }
 
         // --- Ab hier: Verarbeitung für komplett NEUE Artikel ---
+        $this->cleanEntry($entry);
+
+        return $entry;
+    }
+
+    /**
+     * Läuft beim Anzeigen, damit die Bereinigung unabhängig von der Hook-Reihenfolge
+     * zu Extensions wie "Readable" (lädt den Volltext) funktioniert.
+     */
+    public function cleanOnDisplay($entry) {
+        if ($entry !== null) {
+            $this->cleanEntry($entry);
+        }
+        return $entry;
+    }
+
+    private function cleanEntry($entry) {
         $content = $entry->content();
 
         if (is_string($content) && $content !== '') {
@@ -66,8 +84,6 @@ class ContentCleanerExtension extends Minz_Extension {
 
             $entry->_content($content);
         }
-
-        return $entry;
     }
 
     /**
